@@ -1,0 +1,29 @@
+version: 1.0.{build}  
+image: Visual Studio 2017
+
+environment:  
+  DOCKER_USER:
+    secure: Asqgf3jcv2diOKDOfL8DBA==
+  DOCKER_PASS:
+    secure: TOSZ0cDA/Z9zVOVALPo63rv3ffPXezlFz7AYqb8mu3CUx/6iRP+my/vJNTJfjqYg
+  REGISTRY_URL:
+    secure: V4tTX5cy05GQhI+EQpqvxgu4CAlmjJoOIJJrSw4oxms=
+
+install:  
+  - docker version
+
+build_script:
+    - dotnet clean
+    - dotnet restore
+    - dotnet publish containertest.csproj -c Release -r win10-x64
+  
+deploy_script: 
+  - set REPO_API=%REGISTRY_URL%/containertest/api_win
+  - set VERSION=1.0.0
+  - set TAG=latest
+  - docker login %REGISTRY_URL% -u="%DOCKER_USER%" -p="%DOCKER_PASS%"
+  - docker build -f Dockerfile_win -t %REPO_API%:%APPVEYOR_REPO_COMMIT% --build-arg BUILD_DATE=%APPVEYOR_REPO_COMMIT%_TIMESTAMP --build-arg VCS_REF=%APPVEYOR_REPO_COMMIT% --build-arg VERSION=%VERSION% .
+  - docker tag %REPO_API%:%APPVEYOR_REPO_COMMIT% %REPO_API%:%TAG%
+  - docker tag %REPO_API%:%APPVEYOR_REPO_COMMIT% %REPO_API%:appv-%APPVEYOR_BUILD_NUMBER%
+  - docker tag %REPO_API%:%APPVEYOR_REPO_COMMIT% %REPO_API%:%VERSION%
+  - docker push %REPO_API%
